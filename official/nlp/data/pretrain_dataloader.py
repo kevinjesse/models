@@ -33,7 +33,7 @@ class BertPretrainDataConfig(cfg.DataConfig):
   is_training: bool = True
   seq_length: int = 512
   max_predictions_per_seq: int = 76
-  use_next_sentence_label: bool = True
+  use_next_sentence_label: bool = False
   use_position_id: bool = False
 
 

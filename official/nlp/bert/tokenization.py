@@ -171,26 +171,40 @@ def whitespace_tokenize(text):
 class FullTokenizer(object):
   """Runs end-to-end tokenziation."""
 
-  def __init__(self, vocab_file, do_lower_case=True, split_on_punc=True):
+  def __init__(self, vocab_file, do_lower_case=True, split_on_punc=True, sp_model_file=None):
     self.vocab = load_vocab(vocab_file)
     self.inv_vocab = {v: k for k, v in self.vocab.items()}
     self.basic_tokenizer = BasicTokenizer(
         do_lower_case=do_lower_case, split_on_punc=split_on_punc)
-    self.wordpiece_tokenizer = WordpieceTokenizer(vocab=self.vocab)
+
+    self.wordpiece_tokenizer = WordpieceTokenizer(vocab=self.vocab) if not sp_model_file else None
+    self.sentencepiece_tokenizer = FullSentencePieceTokenizer(sp_model_file=sp_model_file) if sp_model_file else None
 
   def tokenize(self, text):
     split_tokens = []
     for token in self.basic_tokenizer.tokenize(text):
-      for sub_token in self.wordpiece_tokenizer.tokenize(token):
-        split_tokens.append(sub_token)
+      if self.sentencepiece_tokenizer:
+      # for sub_token in self.wordpiece_tokenizer.tokenize(token):
+        for sub_token in self.sentencepiece_tokenizer.tokenize(token):
+          split_tokens.append(sub_token)
+      else:
+        for sub_token in self.wordpiece_tokenizer.tokenize(token):
+          split_tokens.append(sub_token)
 
     return split_tokens
 
+
   def convert_tokens_to_ids(self, tokens):
-    return convert_by_vocab(self.vocab, tokens)
+    if self.sentencepiece_tokenizer:
+      return self.sentencepiece_tokenizer.convert_tokens_to_ids(tokens)
+    else:
+      return convert_by_vocab(self.vocab, tokens)
 
   def convert_ids_to_tokens(self, ids):
-    return convert_by_vocab(self.inv_vocab, ids)
+    if self.sentencepiece_tokenizer:
+      return self.sentencepiece_tokenizer.convert_ids_to_tokens(tokens)
+    else:
+      return convert_by_vocab(self.inv_vocab, ids)
 
 
 class BasicTokenizer(object):

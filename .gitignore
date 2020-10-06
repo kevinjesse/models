@@ -96,3 +96,5 @@ ENV/
 
 # For mac
 .DS_Store
+
+official/nlp/data/test_corpus.txt

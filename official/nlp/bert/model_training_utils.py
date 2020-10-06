@@ -29,7 +29,7 @@ from official.staging.training import grad_utils
 from official.utils.misc import distribution_utils
 
 _SUMMARY_TXT = 'training_summary.txt'
-_MIN_SUMMARY_STEPS = 10
+_MIN_SUMMARY_STEPS = 0
 
 
 def _should_export_checkpoint(strategy):

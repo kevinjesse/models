@@ -46,7 +46,7 @@ def define_common_bert_flags():
   flags.DEFINE_string(
       'init_checkpoint', None,
       'Initial checkpoint (usually from a pre-trained BERT model).')
-  flags.DEFINE_integer('num_train_epochs', 3,
+  flags.DEFINE_integer('num_train_epochs', 300,
                        'Total number of training epochs to perform.')
   flags.DEFINE_integer(
       'steps_per_loop', None,

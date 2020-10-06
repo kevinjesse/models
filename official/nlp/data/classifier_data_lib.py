@@ -74,7 +74,7 @@ class InputFeatures(object):
                label_id,
                is_real_example=True,
                weight=None,
-               int_iden=None):
+               int_iden=None,):
     self.input_ids = input_ids
     self.input_mask = input_mask
     self.segment_ids = segment_ids

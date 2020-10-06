@@ -82,7 +82,7 @@ flags.DEFINE_enum("retrieval_task_name", "bucc", ["bucc", "tatoeba"],
                   "The name of sentence retrieval task for scoring")
 
 # Tagging task-specific flags.
-flags.DEFINE_enum("tagging_task_name", "panx", ["panx", "udpos"],
+flags.DEFINE_enum("tagging_task_name", "ts_type", ["panx", "udpos", "ts_type"],
                   "The name of BERT tagging (token classification) task.")
 
 # BERT Squad task-specific flags.
@@ -90,10 +90,6 @@ flags.DEFINE_string(
     "squad_data_file", None,
     "The input data file in for generating training data for BERT squad task.")
 
-flags.DEFINE_integer(
-    "doc_stride", 128,
-    "When splitting up a long document into chunks, how much stride to "
-    "take between chunks.")
 
 flags.DEFINE_integer(
     "max_query_length", 64,
@@ -128,7 +124,7 @@ flags.DEFINE_string("meta_data_file_path", None,
                     "The path in which input meta data will be written.")
 
 flags.DEFINE_bool(
-    "do_lower_case", True,
+    "do_lower_case", False,
     "Whether to lower case the input text. Should be True for uncased "
     "models and False for cased models.")
 
@@ -151,6 +147,12 @@ flags.DEFINE_string("tfds_params", "",
                     "Comma-separated list of TFDS parameter assigments for "
                     "generic classfication data import (for more details "
                     "see the TfdsProcessor class documentation).")
+
+flags.DEFINE_integer(
+    "doc_stride", None,
+    "When splitting up a long document into chunks, how much stride to "
+    "take between chunks.")
+
 
 
 def generate_classifier_dataset():
@@ -306,6 +308,7 @@ def generate_tagging_dataset():
   processors = {
       "panx": tagging_data_lib.PanxProcessor,
       "udpos": tagging_data_lib.UdposProcessor,
+      "ts_type": tagging_data_lib.TsTypeProcessor,
   }
   task_name = FLAGS.tagging_task_name.lower()
   if task_name not in processors:
@@ -322,11 +325,25 @@ def generate_tagging_dataset():
   else:
     raise ValueError("Unsupported tokenizer_impl: %s" % FLAGS.tokenizer_impl)
 
-  processor = processors[task_name]()
+  if task_name == "ts_type":
+    processor = processors[task_name](FLAGS.input_data_dir)
+  else:
+    processor = processors[task_name]()
+  print(FLAGS.input_data_dir)
   return tagging_data_lib.generate_tf_record_from_data_file(
       processor, FLAGS.input_data_dir, tokenizer, FLAGS.max_seq_length,
       FLAGS.train_data_output_path, FLAGS.eval_data_output_path,
-      FLAGS.test_data_output_path, processor_text_fn)
+      FLAGS.test_data_output_path, processor_text_fn, doc_stride=FLAGS.doc_stride)
+
+
+# def create_int_feature(values):
+#   feature = tf.train.Feature(int64_list=tf.train.Int64List(value=list(values)))
+#   return feature
+#
+#
+# def create_float_feature(values):
+#   feature = tf.train.Feature(float_list=tf.train.FloatList(value=list(values)))
+#   return feature
 
 
 def main(_):

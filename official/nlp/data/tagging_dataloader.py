@@ -48,10 +48,11 @@ class TaggingDataLoader:
         'input_mask': tf.io.FixedLenFeature([self._seq_length], tf.int64),
         'segment_ids': tf.io.FixedLenFeature([self._seq_length], tf.int64),
         'label_ids': tf.io.FixedLenFeature([self._seq_length], tf.int64),
+        # 'best_context': tf.io.FixedLenSequenceFeature([self._seq_length], tf.int64, allow_missing=True, ),
+        'best_context': tf.io.FixedLenFeature([self._seq_length], tf.int64),
     }
     if self._include_sentence_id:
       name_to_features['sentence_id'] = tf.io.FixedLenFeature([], tf.int64)
-
     example = tf.io.parse_single_example(record, name_to_features)
 
     # tf.Example only supports tf.int64, but the TPU only supports tf.int32.
@@ -69,12 +70,14 @@ class TaggingDataLoader:
     x = {
         'input_word_ids': record['input_ids'],
         'input_mask': record['input_mask'],
-        'input_type_ids': record['segment_ids']
+        'input_type_ids': record['segment_ids'],
     }
     if self._include_sentence_id:
       x['sentence_id'] = record['sentence_id']
+
     y = record['label_ids']
-    return (x, y)
+    bc = record['best_context'],
+    return (x, y, bc)
 
   def load(self, input_context: Optional[tf.distribute.InputContext] = None):
     """Returns a tf.dataset.Dataset."""

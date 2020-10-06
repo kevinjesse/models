@@ -38,16 +38,20 @@ flags.DEFINE_string(
     "output_file", None,
     "Output TF example file (or comma-separated list of files).")
 
+flags.DEFINE_string(
+    "sp_model_file", None,
+    "Sentence Piece Model if Sentence Piece encoding is used else default to WordPiece")
+
 flags.DEFINE_string("vocab_file", None,
                     "The vocabulary file that the BERT model was trained on.")
 
 flags.DEFINE_bool(
-    "do_lower_case", True,
+    "do_lower_case", False,
     "Whether to lower case the input text. Should be True for uncased "
     "models and False for cased models.")
 
 flags.DEFINE_bool(
-    "do_whole_word_mask", False,
+    "do_whole_word_mask", True,
     "Whether to use whole word masking rather than per-WordPiece masking.")
 
 flags.DEFINE_integer(
@@ -545,7 +549,7 @@ def _wordpieces_to_grams(tokens):
   grams = []
   gram_start_pos = None
   for i, token in enumerate(tokens):
-    if gram_start_pos is not None and token.startswith("##"):
+    if gram_start_pos is not None and not token.startswith("▁"):
       continue
     if gram_start_pos is not None:
       grams.append(_Gram(gram_start_pos, i))
@@ -629,7 +633,7 @@ def truncate_seq_pair(tokens_a, tokens_b, max_num_tokens, rng):
 
 def main(_):
   tokenizer = tokenization.FullTokenizer(
-      vocab_file=FLAGS.vocab_file, do_lower_case=FLAGS.do_lower_case)
+      vocab_file=FLAGS.vocab_file, do_lower_case=FLAGS.do_lower_case, sp_model_file=FLAGS.sp_model_file)
 
   input_files = []
   for input_pattern in FLAGS.input_file.split(","):

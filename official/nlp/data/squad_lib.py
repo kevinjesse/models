@@ -168,24 +168,32 @@ def read_squad_examples(input_file, is_training, version_2_with_negative):
   for entry in input_data:
     for paragraph in entry["paragraphs"]:
       paragraph_text = paragraph["context"]
+
+      #Loop through the paragraph get the actual context or words
       doc_tokens = []
       char_to_word_offset = []
       prev_is_whitespace = True
+
+      #This first loop is just for the context field of paragraph text
+      #now we loop through each character in the text
       for c in paragraph_text:
+        #if it is a whitespce we will skip and set that we are starting a new word
         if is_whitespace(c):
           prev_is_whitespace = True
         else:
+          #if we are starting a word add the character to a new doc token
           if prev_is_whitespace:
-            doc_tokens.append(c)
+            doc_tokens.append(c) #if it is white space start a new word
           else:
-            doc_tokens[-1] += c
+            doc_tokens[-1] += c #the word isnt finished so keep appending
           prev_is_whitespace = False
         char_to_word_offset.append(len(doc_tokens) - 1)
 
+      #Now to process the QAs
       for qa in paragraph["qas"]:
         qas_id = qa["id"]
         question_text = qa["question"]
-        start_position = None
+        start_position = None #not sure why we use this lets find out
         end_position = None
         orig_answer_text = None
         is_impossible = False
@@ -304,15 +312,15 @@ def convert_examples_to_features(examples,
       token_to_orig_map = {}
       token_is_max_context = {}
       segment_ids = []
-      tokens.append("[CLS]")
+      tokens.append("[CLS]")  #tokens will house the list of tokens
       segment_ids.append(0)
-      for token in query_tokens:
+      for token in query_tokens:  #append tokens from question
         tokens.append(token)
         segment_ids.append(0)
-      tokens.append("[SEP]")
+      tokens.append("[SEP]") #separate the question
       segment_ids.append(0)
 
-      for i in range(doc_span.length):
+      for i in range(doc_span.length): #start adding the context from document
         split_token_index = doc_span.start + i
         token_to_orig_map[len(tokens)] = tok_to_orig_index[split_token_index]
 

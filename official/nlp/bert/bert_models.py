@@ -340,12 +340,18 @@ def classifier_model(bert_config,
 
   if not hub_module_url:
     bert_encoder = get_transformer_encoder(
-        bert_config, max_seq_length, output_range=1)
-    return models.BertClassifier(
+        bert_config, max_seq_length, output_range=None)
+    # return models.BertClassifier(
+    #     bert_encoder,
+    #     num_classes=num_labels,
+    #     dropout_rate=bert_config.hidden_dropout_prob,
+    #     initializer=initializer), bert_encoder
+    return models.BertTokenClassifier(
         bert_encoder,
         num_classes=num_labels,
         dropout_rate=bert_config.hidden_dropout_prob,
         initializer=initializer), bert_encoder
+
 
   input_word_ids = tf.keras.layers.Input(
       shape=(max_seq_length,), dtype=tf.int32, name='input_word_ids')
@@ -361,6 +367,8 @@ def classifier_model(bert_config,
   output = tf.keras.layers.Dense(
       num_labels, kernel_initializer=initializer, name='output')(
           output)
+  # print("SHAPE OUTPUT")
+  # print(output.shape)
   return tf.keras.Model(
       inputs={
           'input_word_ids': input_word_ids,

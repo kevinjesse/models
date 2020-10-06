@@ -40,6 +40,7 @@ def single_file_dataset(input_file, name_to_features):
   """Creates a single-file dataset to be passed for BERT custom training."""
   # For training, we want a lot of parallel reading and shuffling.
   # For eval, we want no shuffling and parallel reading doesn't matter.
+
   d = tf.data.TFRecordDataset(input_file)
   d = d.map(
       lambda record: decode_record(record, name_to_features),
@@ -162,10 +163,14 @@ def create_classifier_dataset(file_path,
       'input_ids': tf.io.FixedLenFeature([seq_length], tf.int64),
       'input_mask': tf.io.FixedLenFeature([seq_length], tf.int64),
       'segment_ids': tf.io.FixedLenFeature([seq_length], tf.int64),
-      'label_ids': tf.io.FixedLenFeature([], label_type),
+      'label_ids': tf.io.FixedLenFeature([seq_length], label_type),
+      # 'best_context': tf.io.FixedLenSequenceFeature([],  tf.int64, allow_missing=True,),
+      'best_context': tf.io.FixedLenFeature([seq_length], label_type),
   }
+  
   if include_sample_weights:
     name_to_features['weight'] = tf.io.FixedLenFeature([], tf.float32)
+
   dataset = single_file_dataset(file_path, name_to_features)
 
   # The dataset is always sharded by number of hosts.
@@ -174,21 +179,31 @@ def create_classifier_dataset(file_path,
     dataset = dataset.shard(input_pipeline_context.num_input_pipelines,
                             input_pipeline_context.input_pipeline_id)
 
-  def _select_data_from_record(record):
-    x = {
-        'input_word_ids': record['input_ids'],
-        'input_mask': record['input_mask'],
-        'input_type_ids': record['segment_ids']
-    }
-    y = record['label_ids']
-    if include_sample_weights:
-      w = record['weight']
-      return (x, y, w)
-    return (x, y)
-
+  best_context = True
   if is_training:
     dataset = dataset.shuffle(100)
     dataset = dataset.repeat()
+    best_context = False
+  def _select_data_from_record(record):
+    nonlocal best_context
+    x = {
+        'input_word_ids': record['input_ids'],
+        'input_mask': record['input_mask'],
+        'input_type_ids': record['segment_ids'],
+    }
+    y = record['label_ids']
+    bc = record['best_context']
+    if best_context:
+      eq = tf.math.equal(bc,tf.constant(0))  # you could also rule out the places that are equal to 0 but also -1 in label
+      indices = tf.where(eq)
+      updates = tf.squeeze(tf.broadcast_to(tf.constant(-1), (1, tf.shape(indices)[0])))
+      y = tf.tensor_scatter_nd_update(y, indices, updates)
+
+    if include_sample_weights:
+      w = record['weight']
+      return (x, y, w)
+    # return (x, y)
+    return (x, y, bc)
 
   dataset = dataset.map(
       _select_data_from_record,
